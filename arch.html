@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>תכנון אדריכלי – העמדת ריהוט</title>
+<link rel="stylesheet" href="css/arch.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>תכנון אדריכלי</b><span class="sub" id="projName">פרויקט חדש</span></div>
+  <div class="hbtns">
+    <button id="bSample" class="pri" title="פותח את התוכנית שלך (קומה א׳ + ב׳) עם חדרים מסומנים">פתח את התוכנית שלי</button>
+    <label class="btn" title="PDF או תמונה של תוכנית">העלה תוכנית<input type="file" id="fileIn" accept="application/pdf,image/*" hidden></label>
+    <button id="bNew">חדש</button>
+    <button id="bUndo" title="בטל (Ctrl+Z)">↶</button><button id="bRedo" title="בצע שוב (Ctrl+Y)">↷</button>
+    <button id="bExport">ייצוא</button>
+    <label class="btn">ייבוא<input type="file" id="importIn" accept="application/json,.json" hidden></label>
+    <button id="bPrint">הדפסה / PDF</button>
+    <a class="btn link" href="index.html">עורך המטבח ←</a>
+  </div>
+</header>
+<div class="bar2">
+  <div id="floorTabs" class="tabs"></div>
+  <div class="seg" id="viewSeg"><button data-v="plan" class="on">תוכנית</button><button data-v="3d">תלת-ממד</button><button data-v="split" class="desk">מפוצל</button></div>
+</div>
+<main class="arch" id="main">
+  <aside class="panel" id="pTools">
+    <div class="sec"><h3>כלים</h3>
+      <div class="tools" id="tools">
+        <button data-t="select" class="on" title="בחירה והזזה (V)">⬉ בחירה</button>
+        <button data-t="rect" title="חדר מלבני: גרור (R)">▭ חדר מלבני</button>
+        <button data-t="poly" title="חדר חופשי: לחיצות, סיום בלחיצה על הנקודה הראשונה או Enter">⬠ חדר חופשי</button>
+        <button data-t="split" title="פיצול חדר: גרור קו לרוחב החדר">✂ פיצול חדר</button>
+        <button data-t="wall" title="קיר: גרור">▬ קיר</button>
+        <button data-t="door" title="דלת: לחץ ליד קיר">◜ דלת</button>
+        <button data-t="window" title="חלון: גרור לאורך קיר">☰ חלון</button>
+        <button data-t="calib" title="כיול: לחץ על שתי נקודות עם מרחק ידוע">📏 כיול</button>
+      </div>
+      <div class="hint" id="toolHint"></div>
+    </div>
+    <div class="sec" id="bgSec"><h3>תוכנית רקע</h3><div id="bgCtl"></div></div>
+    <div class="sec cat"><h3>קטלוג רהיטים</h3><div class="chips" id="catChips"></div><div class="catlist" id="catList"></div></div>
+  </aside>
+  <section class="stage" id="stage">
+    <div class="planwrap" id="planWrap">
+      <svg id="plan" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#e3dfd6" stroke-width="1" vector-effect="non-scaling-stroke"/></pattern></defs>
+        <rect id="gridRect" x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid)"/>
+        <image id="bgImg" preserveAspectRatio="none"/>
+        <g id="dyn"></g><g id="ui"></g>
+      </svg>
+      <div class="zoom"><button id="zIn">+</button><button id="zOut">−</button><button id="zFit" title="התאם לתצוגה">⤢</button></div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="v3wrap" id="v3wrap" hidden>
+      <div class="v3bar">
+        <button data-p="iso">איזומטרי</button><button data-p="top">מבט על</button><button data-p="eye" title="מבט בגובה עיניים מתוך החדר הנבחר">מבט עין</button>
+        <button id="v3cut" class="on" title="קירות חתוכים בגובה 120 ס״מ">קירות חתוכים</button>
+        <button id="v3lab" class="on">תוויות</button>
+        <button id="v3q">איכות: גבוהה</button>
+        <button id="v3png">שמור תמונה</button>
+      </div>
+      <div class="v3" id="v3"></div>
+    </div>
+  </section>
+  <aside class="panel" id="pInsp">
+    <div class="sec" id="insp"></div>
+    <div class="sec" id="warnSec"><h3>בדיקות <span id="warnCount" class="badge"></span></h3><div id="warns"></div></div>
+  </aside>
+</main>
+<nav class="mtabs" id="mtabs"><button data-m="pTools" data-s="tools">כלים</button><button data-m="pTools" data-s="cat">קטלוג</button><button data-m="pInsp" data-s="insp">מאפיינים</button><button data-m="pInsp" data-s="warn">בדיקות</button></nav>
+<dialog id="dlg"><form method="dialog" id="dlgBody"></form></dialog>
+<div id="toast"></div>
+<div id="printArea"></div>
+<script type="module" src="js/arch/app.js"></script>
+</body>
+</html>
