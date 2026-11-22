@@ -79,12 +79,12 @@ export function floorSVG(floor, o = {}) {
   // חדרים
   for (const r of floor.rooms) {
     const T = ROOM_TYPES[r.type] || ROOM_TYPES.other; const isSel = sel.kind === 'room' && sel.id === r.id;
-    s += `<polygon class="room" data-id="${r.id}" points="${P(r.poly)}" fill="${T.color}" fill-opacity="${o.bgOn ? 0.55 : 0.92}" stroke="${isSel ? '#1565c0' : r.confirmed ? '#7a6f60' : '#e65100'}" stroke-width="${isSel ? 2.5 : 1}" ${r.confirmed ? '' : 'stroke-dasharray="6 4"'} vector-effect="non-scaling-stroke"/>`;
+    s += `<polygon class="room" data-id="${r.id}" points="${P(r.poly)}" fill="${T.color}" fill-opacity="${o.bgOn ? (r.confirmed ? 0.45 : 0.22) : 0.92}" stroke="${isSel ? '#1565c0' : r.confirmed ? '#7a6f60' : '#e65100'}" stroke-width="${isSel ? 2.5 : 1}" ${r.confirmed ? '' : 'stroke-dasharray="6 4"'} vector-effect="non-scaling-stroke"/>`;
   }
   // קירות
   for (const w of floor.walls) {
     const isSel = sel.kind === 'wall' && sel.id === w.id;
-    s += `<line class="wall" data-id="${w.id}" x1="${w.x1}" y1="${w.y1}" x2="${w.x2}" y2="${w.y2}" stroke="${isSel ? '#1565c0' : '#2b2b2b'}" stroke-width="${w.t}" stroke-linecap="square" ${o.bgOn ? 'stroke-opacity=".8"' : ''}/>`;
+    s += `<line class="wall" data-id="${w.id}" x1="${w.x1}" y1="${w.y1}" x2="${w.x2}" y2="${w.y2}" stroke="${isSel ? '#1565c0' : '#2b2b2b'}" stroke-width="${w.t}" stroke-linecap="square" ${o.bgOn ? 'stroke-opacity=".35"' : ''}/>`;
   }
   for (const w of floor.windows) s += windowSVG(w, sel.kind === 'window' && sel.id === w.id);
   for (const d of floor.doors) s += doorSVG(d, sel.kind === 'door' && sel.id === d.id);

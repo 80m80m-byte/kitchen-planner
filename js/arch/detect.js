@@ -224,7 +224,7 @@ export function analyzeVector(polys, cmPerPx, opts = {}) {
   for (const c of comps) {
     if (c.border) continue;
     const area = c.n * res * res / 1e4; // מ"ר
-    if (area < 0.6) { thin.push(c); continue; }
+    if (area < 0.95) { thin.push(c); continue; } // שברים קטנים (נישות, פירים) – לא חדר
     const D = distT(lab, G.w, G.h, c.id);
     let mx = 0; for (let j = c.y0; j <= c.y1; j++) for (let i = c.x0; i <= c.x1; i++) mx = Math.max(mx, D[j * G.w + i]);
     const width = mx * 2 * res;
@@ -263,6 +263,9 @@ export function analyzeVector(polys, cmPerPx, opts = {}) {
     if (twin) { const sw = (twin.x2 - twin.x1) * dx + (twin.y2 - twin.y1) * dy < 0; const cx1 = sw ? c.x2 : c.x1, cy1 = sw ? c.y2 : c.y1, cx2 = sw ? c.x1 : c.x2, cy2 = sw ? c.y1 : c.y2; twin.x1 = (twin.x1 + cx1) / 2; twin.y1 = (twin.y1 + cy1) / 2; twin.x2 = (twin.x2 + cx2) / 2; twin.y2 = (twin.y2 + cy2) / 2; continue; }
     windows.push({ id: uid('n'), x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2 });
   }
+  // חלון חייב להיות ישר (אופקי/אנכי) ובאורך סביר – אחרת זה זיווג שגוי של קווים
+  const winsOk = windows.filter(w => { const dx = Math.abs(w.x2 - w.x1), dy = Math.abs(w.y2 - w.y1), L = Math.hypot(dx, dy); return L >= 40 && L <= 400 && Math.min(dx, dy) / L < 0.05; });
+  windows.length = 0; windows.push(...winsOk);
   const ms = Math.round(performance.now() - t0);
   return { ok: true, wallW, rooms, walls, doors: doors.map(({ cx, cy, ...d }) => d), windows, closings: closings.length, ms, grid: { w: G.w, h: G.h } };
 }

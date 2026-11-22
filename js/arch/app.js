@@ -35,11 +35,17 @@ function fixSel() { const f = F(); if (!f) return; const L = { room: f.rooms, fu
 let saveT = 0;
 function save() { clearTimeout(saveT); saveT = setTimeout(() => {
   try { localStorage.setItem(LS, snap()); } catch (e) { console.warn(e); }
-  try { const used = {}; for (const f of project.floors) if (f.bg && bgStore[f.bg.key]) used[f.bg.key] = bgStore[f.bg.key]; localStorage.setItem(LSB, JSON.stringify(used)); } catch (e) { toast('התוכנית נשמרה, אבל תמונת הרקע גדולה מדי לשמירה בדפדפן – השתמש בייצוא'); }
+  const used = {}; for (const f of project.floors) if (f.bg && bgStore[f.bg.key]) used[f.bg.key] = bgStore[f.bg.key];
+  idbPut(used).catch(() => toast('התוכנית נשמרה, אבל תמונת הרקע לא נשמרה בדפדפן – השתמש בייצוא'));
 }, 300); }
+// תמונות רקע נשמרות ב-IndexedDB (גדולות מדי ל-localStorage)
+const idb = () => new Promise((res, rej) => { const q = indexedDB.open('arch-bg', 1); q.onupgradeneeded = () => q.result.createObjectStore('bg'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+async function idbPut(map) { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction('bg', 'readwrite'); const st = tx.objectStore('bg'); st.clear(); for (const [k, v] of Object.entries(map)) st.put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
+async function idbAll() { const db = await idb(); return new Promise((res, rej) => { const out = {}; const tx = db.transaction('bg'); const c = tx.objectStore('bg').openCursor(); c.onsuccess = () => { const cur = c.result; if (cur) { out[cur.key] = cur.value; cur.continue(); } else res(out); }; c.onerror = () => rej(c.error); }); }
 function load() {
   try { const p = JSON.parse(localStorage.getItem(LS)); if (p?.floors?.length) project = p; bgStore = JSON.parse(localStorage.getItem(LSB) || '{}'); return !!p; } catch (e) { return false; }
 }
+async function loadBg() { try { const m = await idbAll(); if (Object.keys(m).length) { bgStore = { ...bgStore, ...m }; renderPlan(); } } catch (e) { console.warn(e); } }
 
 // ---------- תצוגה ----------
 function vb() { const r = svg.getBoundingClientRect(); const w = Math.max(50, r.width), h = Math.max(50, r.height); return { x: view.cx - w * view.s / 2, y: view.cy - h * view.s / 2, w: w * view.s, h: h * view.s, pw: w, ph: h }; }
@@ -389,10 +395,12 @@ const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.on
 async function usePdfPage(pdf, n, name) {
   toast('מעבד את העמוד…');
   const { renderPage } = await import('./detect.js');
-  const r = await renderPage(pdf, n, 2.5);
-  const src = r.canvas.toDataURL('image/jpeg', 0.8);
+  const v1 = (await pdf.getPage(n)).getViewport({ scale: 1 });
+  const rs = Math.min(4, 4096 / Math.max(v1.width, v1.height)); // חדות: ~4000 פיקסלים בצד הארוך
+  const r = await renderPage(pdf, n, rs);
+  const src = r.canvas.toDataURL('image/jpeg', 0.9);
   dialog(`<h2>קנה מידה</h2><p>מה קנה המידה הרשום בתוכנית? (למשל 1:50)</p><div class="row"><span>1:</span><input type="number" id="sN" value="50" style="font-size:18px"></div><p class="kv">אם לא ידוע – השאר 50 וכייל אחר כך עם כלי ״כיול״.</p><div class="btns"><button class="pri" id="sOk">המשך וזהה חדרים</button><button id="sOk2">המשך בלי זיהוי</button></div>`, (d) => {
-    const go = (det) => (e) => { e.preventDefault(); const N = +$('#sN').value || 50; d.close(); const cmPerPx = N * 2.54 / 72 / 2.5; const fid = setBg({ kind: 'pdf', key: 'bg' + uid(''), src, wPx: r.canvas.width, hPx: r.canvas.height, cmPerPx, name: `${name} · עמוד ${n}`, renderScale: 2.5, page: n }); session.pdf[fid] = r; if (det) autoDetect(); };
+    const go = (det) => (e) => { e.preventDefault(); const N = +$('#sN').value || 50; d.close(); const cmPerPx = N * 2.54 / 72 / rs; const fid = setBg({ kind: 'pdf', key: 'bg' + uid(''), src, wPx: r.canvas.width, hPx: r.canvas.height, cmPerPx, name: `${name} · עמוד ${n}`, renderScale: rs, page: n }); session.pdf[fid] = r; if (det) autoDetect(); };
     $('#sOk').onclick = go(true); $('#sOk2').onclick = go(false);
   });
 }
@@ -424,6 +432,7 @@ async function autoDetect() {
     f.furn = f.furn.filter(it => f.rooms.some(r => pip([it.x, it.y], r.poly)));
     sel = { kind: null, id: null };
   });
+  fit();
   toast(`זוהו ${res.rooms.length} אזורים, ${res.doors.length} דלתות, ${res.windows.length} חלונות (${res.method || (session.pdf[f.id] ? 'וקטורי' : 'תמונה')}). בדוק כל חדר: מחק עודפים, פצל חללים פתוחים, ואשר סוג.`, 7000);
 }
 
@@ -553,7 +562,7 @@ function doPrint() {
 
 // ---------- אתחול ----------
 renderCat(); setTool('select');
-const had = load();
+const had = load(); loadBg();
 window.__arch = { get project() { return project; }, get sel() { return sel; }, set sel(v) { sel = v; render(); }, render, fit, generate, F, setTool, setView, autoDetect, session, get warnings() { return warnings; }, view };
 new ResizeObserver(() => renderPlan()).observe(svg);
 render(); setTimeout(fit, 30);
